@@ -1,0 +1,19 @@
+{
+  "name": "verena/app",
+  "require": {
+      "monolog/monolog" : "^2.0",
+      "ext-pdo": "*",
+      "phpunit/phpunit": "^9"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Masson Verena",
+      "email": "masson.verena@gmail.com"
+    }
+  ]
+}

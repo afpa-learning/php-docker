@@ -1,0 +1,70 @@
+services:
+  # Service PHP FastCGI Processor qui générera les pages et les servira à Nginx
+  app-php:
+    container_name: app-php
+    restart: 'always'
+    image: php:8.0-fpm
+    build:
+      context: ./infra/php
+    # Définition des variables d'environnement
+    environment:
+        - APP_ENV=${APP_ENV}
+        - APP_SECRET=${APP_SECRET}
+    env_file:
+      - "./.env"
+    # Dépendance avec la base de donénes
+    depends_on:
+      - app-mysql
+    # Montage de volumes
+    volumes:
+      - ./${APP_NAME}:/var/www
+      # Copie du fichier de configuration "php.ini"
+      - ${PHP_INI}:/usr/local/etc/php/php.ini
+      # Montage du dossier qui contiendra les logs
+      - ${LOG_DIR_TMP}:/var/tmp
+    networks:
+      - app
+
+  # Service Nginx : serveur http
+  app-nginx:
+    # Utlisation de l'image alpine (Linux léger okay pour le déploiement en production)
+    image: nginx:alpine
+    container_name: app-nginx
+    restart: 'always'
+    volumes:
+      - ./${APP_NAME}:/var/www3
+      # Montage des logs Nginx
+      - "./infra/logs/nginx:/var/log/nginx"
+      # Copie du fichier de configuration Ngxin (Read-only)
+      - "./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro"
+    ports:
+      # Redirection vers port HTTP par défaut
+      - "8807:80"
+      # Redirection vers port HTTPS par défaut
+      - "8443:443"
+    networks:
+      - app
+
+  # Service Nginx : serveur http
+  app-mysql:
+    build:
+      context: ./infra/mysql
+    container_name: app-mysql
+    image: mysql:5.7
+    restart: 'always'
+    volumes:
+      - ${MYSQL_DATA_DIR}:/var/lib/mysql
+      - ${LOG_DIR_MYSQL}:/var/log/mysql
+      - ${MYSQL_CONF_FILE}:/etc/mysql/conf.d/my.cnf
+      - ${MYSQL_DUMP_DIR}:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MY_DATABASE}
+    ports:
+      - "9907:3306"
+    networks:
+      - app
+#Docker Networks
+networks:
+  app:
+    driver: bridge
